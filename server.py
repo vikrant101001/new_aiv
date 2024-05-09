@@ -21,7 +21,7 @@ import time
 from flask_cors import CORS
 
 import re
-
+import config 
 
 import random
 
@@ -52,16 +52,18 @@ app = Flask(__name__)
 cors = CORS(app)
 
 
-os.environ["OPENAI_API_KEY"] = ''
-os.environ["MAPBOX_API_KEY"] = ''
+# os.environ["OPENAI_API_KEY"] = ''
+# os.environ["MAPBOX_API_KEY"] = ''
 
-os.environ["API_SECRET"] = 'my secret'
+# os.environ["API_SECRET"] = 'my secret'
 
-openai_api_key = os.environ["OPENAI_API_KEY"]
-mapbox_api_key = os.environ["MAPBOX_API_KEY"]
+openai_api_key = config.OPENAI_API_KEY
+mapbox_api_key = config.MAPBOX_API_KEY
+API_SECRET = config.API_SECRET
+# Anthropic_api_key = config.ANTHROPIC_API_KEY
+
 geocoder = MapBox(api_key=mapbox_api_key)
 
-API_SECRET = os.environ["API_SECRET"]
 
 last_api_call_time = 0
 history = []
@@ -277,10 +279,10 @@ def train(user_location):
 
     docs = []
     for entry in data:
-    	address = entry.get('address', '')
-    	if address is not None:
-    		print(f"Address to split: {address}")
-    		docs.extend(text_splitter.split_text(address))
+        address = entry.get('address', '')
+        if address is not None:
+            print(f"Address to split: {address}")
+            docs.extend(text_splitter.split_text(address))
 
     embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
     store = FAISS.from_texts(docs, embeddings)
@@ -323,7 +325,6 @@ previous_response = {}
 searched = {}
 last_api_call_times = {}
 agent = 'undefined'
-os.environ["ANTHROPIC_API_KEY"] = ""
 
 medicatorllm = ChatAnthropic(temperature=0, model_name="claude-3-haiku-20240307")
 
@@ -376,7 +377,7 @@ def medicator_crew(careteam_history, current_question):
     if 'Medicator' in message:
 
         medicator2 = Task(
-            description=f"""answer their medication related question quickly but efficiently and also in short no more than required . This is the past conversations (conversation starts here ----{careteam_history}-----end) and the lastest question : {current_question}. and answer it as fast as possible dont take time at all. The answer doesnt need to be the best. Also very important note: the answer MUST be short, no more than 2 lines""",
+            description=f"""answer their medication related question quickly but efficiently and also in short no more than required . This is the past conversations (conversation starts here ----{careteam_history}-----end) and the lastest question : {current_question}. and answer it as fast as possible dont take time at all. The answer doesnt need to be the best. Also very important note: the answer MUST be short, no more than 2 lines """,
             agent=Medicator
         )
 
@@ -395,6 +396,20 @@ def medicator_crew(careteam_history, current_question):
     print(result)
 
     return result
+
+
+def download_document(metadata):
+    # Download the document from the metadata
+    return "Document Path"
+
+def document_crew(careteam_history, current_question):
+    return "Document crew response"
+
+def text_extraction(metadata):
+    description = ""
+    doc_path = download_document(metadata)
+    
+    return description
 
 @app.route("/", methods=["POST"])
 def ask():
@@ -424,10 +439,24 @@ def ask():
         user_question = reqData['question']
         user_address = request.headers.get('userprimaddress')
         print(f"All Headers: {request.headers}")
+        
+        metadata = reqData['metadata']
 
         current_time = time.time()
         last_api_call_time_for_caregiver = last_api_call_times.get(careteam_id, 0)
         if current_time - last_api_call_time_for_caregiver > 600:
+            
+            
+        # """
+        # History = "We are refering to the image () with the description of the image being ()"
+        # question = "Refer to the image ()"
+        # """
+    
+            if len(metadata) > 0:
+                description_of_image = text_extraction(metadata)
+                
+                
+                
             agent = 'base'
             reset_history(careteam_id)
             last_api_call_times[careteam_id] = current_time
