@@ -322,7 +322,7 @@ previous_response = {}
 
 searched = {}
 last_api_call_times = {}
-agent = 'undefined'
+
 os.environ["ANTHROPIC_API_KEY"] = ""
 
 medicatorllm = ChatAnthropic(temperature=0, model_name="claude-3-haiku-20240307")
@@ -396,12 +396,11 @@ def medicator_crew(careteam_history, current_question):
 
     return result
 
-@app.route("/", methods=["POST"])
+@app.route("/textadvocate", methods=["POST"])
 def ask():
     global last_api_call_time
     global llmChain
     global count1
-    global agent
 
     username = "aiassistantevvaadmin"
     password = "EvvaAi10$"
@@ -422,6 +421,7 @@ def ask():
     try:
         reqData = request.get_json()
         user_question = reqData['question']
+        agent = reqData['agent']
         user_address = request.headers.get('userprimaddress')
         print(f"All Headers: {request.headers}")
 
