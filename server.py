@@ -22,7 +22,8 @@ from flask_cors import CORS
 
 import re
 import config 
-
+from PyPDF2 import PdfReader
+import helper
 import random
 
 
@@ -398,18 +399,7 @@ def medicator_crew(careteam_history, current_question):
     return result
 
 
-def download_document(metadata):
-    # Download the document from the metadata
-    return "Document Path"
 
-def document_crew(careteam_history, current_question):
-    return "Document crew response"
-
-def text_extraction(metadata):
-    description = ""
-    doc_path = download_document(metadata)
-    
-    return description
 
 @app.route("/", methods=["POST"])
 def ask():
@@ -453,7 +443,7 @@ def ask():
         # """
     
             if len(metadata) > 0:
-                description_of_image = text_extraction(metadata)
+                description_of_docs = helper.text_extraction(metadata)
                 
                 
                 
