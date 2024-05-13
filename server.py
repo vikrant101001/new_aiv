@@ -444,7 +444,8 @@ def ask():
     
             if len(metadata) > 0:
                 description_of_docs = helper.text_extraction(metadata)
-                
+                print(description_of_docs)
+                answer = helper.query_the_document(description_of_docs, user_question)
                 
                 
             agent = 'base'

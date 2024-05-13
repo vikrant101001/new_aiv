@@ -1,16 +1,15 @@
 import os
+
+import ollama
 import config
 from PyPDF2 import PdfReader
 from azure.storage.blob import BlobServiceClient
+import prompt_storage
 
 
 BLOB_CONNECTION_STRING = config.CONNECTION_STRING
 BLOB_CONTAINER_NAME = config.CONTAINER_NAME
 
-
-
-def document_crew(careteam_history, current_question):
-    return "Document crew response"
 
 
 def download_azure_blob(blob_path, blod_extension, user_id):
@@ -38,22 +37,36 @@ def download_azure_blob(blob_path, blod_extension, user_id):
 
 
 
-def extract_text_from_pdf(file_path):
-    return "PDF Text"
 
-def extract_text_from_image(file_path):
-    # Extract text from the image file
-    return "Image Text"
+def llava_image_extraction(image_list: list[str]) -> ollama.chat:
+    try:
+        prompt = prompt_storage.prompt_for_llava()
+        res = ollama.chat(
+            model="llava",
+            messages=[
+                {
+                    'role': 'user',
+                    'content': prompt,
+                    'images': image_list,
+                }
+            ]
+        )
+        response = res['message']['content']
+        print("Response from LLAVA: \n\n", response)
+        return response, 200
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"Error from LLAVA": f"Error: {e}"}, 500
+        
 
 def extract_text_from_pdf(file_path):
     # Placeholder function for PDF extraction
-    
-    
+        
     return f"Text extracted from PDF: {file_path}\n"
 
-def extract_text_from_image(file_path):
-    # Placeholder function for image extraction
-    return f"Text extracted from image: {file_path}\n"
+def query_the_document(context , user_question):
+    return None
+    
     
 
 def text_extraction(metadata):
@@ -72,7 +85,10 @@ def text_extraction(metadata):
             downloaded_pdf_file_path, status_code = download_azure_blob(metadata, file_extension, user_id)
             if status_code != 200:
                 return downloaded_pdf_file_path
-            description += extract_text_from_image(file_path, user_id)
+            llava_extraction_response, status_code = llava_image_extraction(downloaded_pdf_file_path)
+            if status_code != 200:
+                return llava_extraction_response
+            # processed_text, status_code = process_llava_response(llava_extraction_response) 
         else:
             print(f"Unsupported file type: {file_extension}")
     return description
