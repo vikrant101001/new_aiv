@@ -1,6 +1,6 @@
 import os
 import config
-from PyPDF2 import PdfReader
+#from PyPDF2 import PdfReader
 from azure.storage.blob import BlobServiceClient
 
 
@@ -78,6 +78,6 @@ def text_extraction(metadata):
     return description
 
 
-metadata = ["https://asif-test-bucket-practice.s3.ap-south-1.amazonaws.com/rust_programming_crab_sea.jpg", "path2.pdf"]
-description = text_extraction(metadata)
-print(description)
+#metadata = ["https://asif-test-bucket-practice.s3.ap-south-1.amazonaws.com/rust_programming_crab_sea.jpg", "path2.pdf"]
+#description = text_extraction(metadata)
+#print(description)
