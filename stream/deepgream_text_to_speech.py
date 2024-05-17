@@ -49,6 +49,7 @@ def synthesize_audio(text):
     # Choose a model to use for synthesis
     options = SpeakOptions(
         model="aura-helios-en",
+        encoding="aac"  # Specify the desired audio format
     )
     speak_options = {"text": text}
     # Synthesize audio and stream the response

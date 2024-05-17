@@ -32,8 +32,14 @@ async def echo(websocket, path):
                             # Calculate the elapsed time
                     elapsed_time = end_time - start_time
 
-                    print(f"Elapsed time: {elapsed_time} seconds")
+                    print(f"Elapsed time till receiving audio: {elapsed_time} seconds")
                     await websocket.send(audio)
+
+                    end_time = time.time()
+                            # Calculate the elapsed time
+                    elapsed_time = end_time - start_time
+
+                    print(f"Elapsed time till after receiving audio: {elapsed_time} seconds")
                     messages_received = []  # Reset for next set of messages
                 except StopIteration:
                     break

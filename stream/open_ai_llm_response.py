@@ -45,17 +45,18 @@ class ChatResponse:
             if chunk.choices[0].delta.content is not None:
                 sentence_buffer += chunk.choices[0].delta.content
                 if sentence_buffer.endswith(('.', '!', '?')):
+                     # Record the end time
+                    end_time = time.time()
+
+                    # Calculate the elapsed time
+                    elapsed_time = end_time - start_time
+
+                    print(f"Elapsed time for open ai : {elapsed_time} seconds")
+
                     yield sentence_buffer.strip()
                     sentence_buffer = ""
 
-        # Record the end time
-        end_time = time.time()
-
-        # Calculate the elapsed time
-        elapsed_time = end_time - start_time
-
-        print(f"Elapsed time: {elapsed_time} seconds")
-
+       
         # return response
 
 
