@@ -10,6 +10,7 @@ from pydub import AudioSegment
 from pydub.playback import play
 from dotenv import load_dotenv
 import os
+import time 
 
 load_dotenv()
 
@@ -56,13 +57,14 @@ def synthesize_audio(text):
     audio_buffer = response.stream
 
     # Load audio from buffer using pydub
-    audio = AudioSegment.from_mp3(audio_buffer)
+    # audio = AudioSegment.from_mp3(audio_buffer)
 
-    # Play the audio
-    play(audio)
+    # # Play the audio
+    # play(audio)
+    # time.sleep(15)
 
     # Reset the audio buffer for reading
-    audio_buffer.seek(0)
+    # audio_buffer.seek(0)
 
     # Read the audio data from the buffer
     audio_data = audio_buffer.read()

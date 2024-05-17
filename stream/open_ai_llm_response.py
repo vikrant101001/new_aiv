@@ -22,7 +22,7 @@ class ChatResponse:
         # Record the start time
         start_time = time.time()
         # Create a completion
-        completion = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -31,12 +31,22 @@ class ChatResponse:
                 },
                 {"role": "user", "content": _query},
             ],
+            stream=True,
+            max_tokens=100,
         )
 
         # Get the response from the completion
-        response = completion.choices[0].message.content
+        # response = stream.choices[0].message.content
 
-        print(response)
+        # print(response)
+
+        sentence_buffer = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                sentence_buffer += chunk.choices[0].delta.content
+                if sentence_buffer.endswith(('.', '!', '?')):
+                    yield sentence_buffer.strip()
+                    sentence_buffer = ""
 
         # Record the end time
         end_time = time.time()
@@ -46,9 +56,18 @@ class ChatResponse:
 
         print(f"Elapsed time: {elapsed_time} seconds")
 
-        return response
+        # return response
 
 
 if __name__ == "__main__":
     chat_response=ChatResponse()
-    chat_response.chat_response("Tell me something about India")
+    gen=chat_response.chat_response("Tell me something about India")
+    while True:
+        try:
+            sentences = next(gen)
+            print(sentences)
+            # for chunk_text in sentences:
+            #     print(chunk_text)
+        except StopIteration:
+            break
+
