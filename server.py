@@ -108,6 +108,9 @@ def clean_response(response):
     return cleaned_response
 
 
+def reset_history(careteam_id):
+    careteam_histories[careteam_id] = []
+
 @app.route("/", methods=["GET"])
 def index():
   return "API Online"
@@ -124,19 +127,21 @@ agent = 'undefined'
 
 
 
+@app.route('/')
+def backend_start():
+    return 'Backend is up and running!'
 
-
-@app.route("/", methods=["POST"])
+@app.route("/chat_text", methods=["POST"])
 def ask():
     global last_api_call_time
     global llmChain
     global count1
     global agent
 
-    username = "aiassistantevvaadmin"
-    password = "EvvaAi10$"
-    hostname = "aiassistantdatabase.postgres.database.azure.com"
-    database_name = "aidatabasecombined"
+    username = ""
+    password = ""
+    hostname = ""
+    database_name = ""
     db_connection_url = f"postgresql://{username}:{password}@{hostname}/{database_name}"
 
     api_secret_from_frontend = request.headers.get('X-API-SECRET')
@@ -156,28 +161,21 @@ def ask():
         print(f"All Headers: {request.headers}")
         
         metadata = reqData['metadata']
-
+        agent_recieved = reqData['agent']
 
         current_time = time.time()
         last_api_call_time_for_caregiver = last_api_call_times.get(careteam_id, 0)
 
+        careteam_history = careteam_histories.setdefault(careteam_id, [])
+
+
         if current_time - last_api_call_time_for_caregiver > 600:
-            
-            
-        # """
+            reset_history(careteam_id)
+
+            # """
         # History = "We are refering to the image () with the description of the image being ()"
         # question = "Refer to the image ()"
         # """
-    
-            if len(metadata) > 0:
-                description_of_docs = helper.text_extraction(metadata)
-                print(description_of_docs)
-                answer = helper.query_the_document(description_of_docs, user_question)
-                
-                
-            agent = 'base'
-            reset_history(careteam_id)
-            agent = "base"
 
             last_api_call_times[careteam_id] = current_time
             # Only confirm address if the question is related to a search
@@ -186,10 +184,20 @@ def ask():
 
             count1 = trainer.train(user_location)  # Train based on user location for the first call of a session
             print(count1)
-        
 
 
-        print(agent)
+        if len(metadata) > 0:
+            careteam_history.append(f"Human: {user_question}")
+            description_of_docs, status_code = helper.text_extraction(metadata, careteam_id)
+            if status_code == 200:
+                print(description_of_docs)
+                answer = crews.new_document_analyser(description_of_docs, user_question)
+                careteam_history.append(f"Bot: Description of Image: {description_of_docs} , Answer for User_Question: {answer}")
+                agent = "document"
+                return jsonify({"answer": answer, "current agent": agent,"success": True}), 200
+            else:
+                return jsonify({"answer": "Sorry, we aren't able to help you right now, try again after some time.", "current agent": agent, "success": False}), 400
+
         if not llmChain:
             # Initialize llmChain if it's not initialized yet
             with open("training/master.txt", "r") as f:
@@ -197,48 +205,54 @@ def ask():
             print("i read master text")
 
             prompt = Prompt(template=promptTemplate, input_variables=["history", "context", "question"])
-            llmChain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=0.5,
-                                                             model_name="gpt-4-1106-preview",
+            llmChain = LLMChain(prompt=prompt, llm=ChatOpenAI(temperature=0.2,
+                                                             model_name="gpt-4o", max_tokens = 150,
+
                                                              openai_api_key=openai_api_key))
             print("i reached LLmchain definition")
             
-        careteam_history = careteam_histories.setdefault(careteam_id, [])
+
+        current_agent = crews.basedecidercrew(careteam_history, agent_recieved, user_question)
+
+
+
+        # if agent == 'base':
+        #     #The base decider agent decides when and which agent to give the task to
+        #     new_agent = crews.basedecidercrew(careteam_history)
+        #     print(new_agent)
+        #     if 'Base' not in new_agent:
+        #         agent = new_agent
+        #     else:
+        #         agent = "base"
         careteam_history.append(f"Human: {user_question}")
-
-        
-        if agent == 'base':
-            #The base decider agent decides when and which agent to give the task to
-            new_agent = basedecidercrew(careteam_history)
-            print(new_agent)
-            if 'Base' not in new_agent:
-                agent = new_agent
-            else:
-                agent = "base"
-
-        if 'Medicator' in agent:
+        if 'MEDICATOR' in current_agent:
             print("i reached medicator agent")
-            agent = 'Medicator'
+            # agent = 'Medicator'
             response = crews.medicator_crew(careteam_history, user_question)
-            if response == 'base':
-                agent = 'base'
+            # if response == 'base':
+            #     agent = 'base'
+            careteam_history.append(f"Bot: {response}")
+            agent = current_agent
+            return jsonify({"answer": response, "current agent": agent,"success": True}), 200
 
-        if agent == 'base':
-            print("i reached base agent")
-            # Only confirm the user's address for search-related questions
+        if 'DOCUMENT' in current_agent:
+            print("i reached document agent")
+            # agent = 'Medicator'
+            response = crews.document_processor_crew(careteam_history, user_question)
+            # if response == 'base':
+            #     agent = 'base'
+            careteam_history.append(f"Bot: {response}")
+            agent = current_agent
+            return jsonify({"answer": response, "current agent": agent, "success": True}), 200
 
         response = llmChain.predict(question=user_question, context="\n\n".join(careteam_history), history=careteam_history)
-
-
-
         careteam_history.append(f"Bot: {response}")
+        return jsonify({"answer": response, "current agent": current_agent,"success": True}), 200
+
+
         
         # Adjust insert_conversation to handle caregiver-specific history
         #database.insert_conversation(user_question, response, careteam_id, caregiver_id)
-
-
-
-        
-        return jsonify({"answer": response, "current agent": agent ,"success": True})
     except Exception as e:
         return jsonify({"answer": None, "success": False, "message": str(e)}), 400
 
