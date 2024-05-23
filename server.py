@@ -259,6 +259,13 @@ def ask():
 
 
 
+@app.route("/visitai_summary", methods=["POST"])
+def visitai_summary():
+    try:
+        payload = request.get_json()
+    except Exception as e:
+        return jsonify({"answer": "Sorry, we aren't able to help you right now, try again after some time.", "message": str(e)}), 400
+
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=3000)
 
